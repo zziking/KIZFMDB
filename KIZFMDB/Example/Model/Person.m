@@ -6,10 +6,10 @@
 //  Copyright © 2016年 hunlimao. All rights reserved.
 //
 
-#import "User.h"
+#import "Person.h"
 #import "NSObject+KIZFMDB.h"
 
-@implementation User
+@implementation Person
 
 + (NSDictionary<NSString *, NSString *> *)kiz_propertyDefaultValues{
     return @{
@@ -21,6 +21,13 @@
 
 + (NSArray<NSString *> *)kiz_primaryKeys{
     return @[@"userId"];
+}
+
++ (NSString *)kiz_forieignKeyForProperty:(NSString *)property{
+    if ([property isEqualToString:@"idCard"]) {
+        return @"id";
+    }
+    return nil;
 }
 
 @end

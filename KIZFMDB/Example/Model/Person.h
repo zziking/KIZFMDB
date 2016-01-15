@@ -8,8 +8,9 @@
 
 #import <Foundation/Foundation.h>
 #import "KIZDBProtocol.h"
+#import "IDCard.h"
 
-@interface User : NSObject<KIZDBProtocol>
+@interface Person : NSObject<KIZDBProtocol>
 
 @property (nonatomic, assign) NSInteger userId;
 @property (nonatomic, copy  ) NSString  *userName;
@@ -18,5 +19,7 @@
 @property (nonatomic, strong) NSDate *updateTime;
 
 @property (nonatomic, assign) long longValue;
+
+@property (nonatomic, strong) IDCard *idCard;
 
 @end

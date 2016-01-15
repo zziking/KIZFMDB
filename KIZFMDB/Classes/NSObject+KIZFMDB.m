@@ -20,12 +20,12 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
 
 //see http://www.sqlite.org/datatype3.html
 
-NSString *const KIZSQLiteTypeText    = @"TEXT";//UTF-8、UTF16BE、UTF-16LE编码存储的字符类型， VARCHAR、NVARCHAR、CLOB
-NSString *const KIZSQLiteTypeReal    = @"REAL";//浮点类型 REAL、DOUBLE、DOUBLE PRECISION、FLOAT
-NSString *const KIZSQLiteTypeInt     = @"INTEGER";//有符号整型 INT、INTEGER、TINYINT、SMALLINT、MEDIUMINT、BIGINT、UNSIGNED BIG INT
-NSString *const KIZSQLiteTypeBLOB    = @"NONE";//二进制数据类型
-NSString *const KIZSQLiteTypeNumber  = @"NUMBERIC";// NUMERIC、DECIMAL(10,5)、 BOOLEAN、 DATE、DATETIME
-NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBERIC类型，为了区分NSDate，增加此类型
+//NSString *const KIZSQLiteTypeText    = @"TEXT";//UTF-8、UTF16BE、UTF-16LE编码存储的字符类型， VARCHAR、NVARCHAR、CLOB
+//NSString *const KIZSQLiteTypeReal    = @"REAL";//浮点类型 REAL、DOUBLE、DOUBLE PRECISION、FLOAT
+//NSString *const KIZSQLiteTypeInt     = @"INTEGER";//有符号整型 INT、INTEGER、TINYINT、SMALLINT、MEDIUMINT、BIGINT、UNSIGNED BIG INT
+//NSString *const KIZSQLiteTypeBLOB    = @"NONE";//二进制数据类型
+//NSString *const KIZSQLiteTypeNumber  = @"NUMBERIC";// NUMERIC、DECIMAL(10,5)、 BOOLEAN、 DATE、DATETIME
+//NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBERIC类型，为了区分NSDate，增加此类型
 
 
 #pragma clang diagnostic ignored "-Wprotocol"
@@ -585,15 +585,7 @@ NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBE
                 continue;
             }
             
-            //property对应的SQLite类型
-            NSString *sqlType = [self sqliteColumnTypeFromObjc_property_t:property];
-            if (!sqlType) {
-                //NSArray、NSDictionary等类型不支持
-                continue;
-            }
-            
             classProperty.name          = propertyName;
-            classProperty.dbColumnType  = sqlType;
             classProperty.dbColumnName  = [class kiz_tableColumnPropertyMap][propertyName] ?: propertyName;
             classProperty.defaultValue  = [class kiz_propertyDefaultValues][propertyName];
             classProperty.isNonNull     = [[class kiz_nonNullProperties] containsObject:propertyName];
@@ -638,10 +630,12 @@ NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBE
                 classProperty.isStandardType = NO;
                 classProperty.structName     = propertyType;
                 
+                continue; //暂不支持结构体
+                
             }
             //property是基本数据类型
             else{
-                
+                classProperty.propertyType = propertyTypeFromObjcPropertyT(property);
             }
             
             //添加到字典中
@@ -836,95 +830,14 @@ NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBE
 /**
  将对象属性的类型映射到Sqlite数据库类型
  */
-+ (NSString *)sqliteColumnTypeFromObjc_property_t:(objc_property_t)property
+static KIZPropertyType propertyTypeFromObjcPropertyT(objc_property_t property)
 {
     char *type = property_copyAttributeValue(property, "T");
-    NSString *sqliteType = nil;
     switch (type[0]) {
         case 'f':   // float
         case 'd':   // double
-            sqliteType = KIZSQLiteTypeReal;
-            break;
-        case 'c':   // char、BOOL
-        case 'C':   // unsigned char、Boolean
-        case 's':   // short
-        case 'S':   // unsigned short
-        case 'i':   // int
-        case 'I':   // unsigned int
-        case 'l':   // long
-        case 'L':   // unsigned long
-        case 'q':   // longl long、 NSInteger
-        case 'Q':   // usigned long long、 NSUInteger
-            sqliteType = KIZSQLiteTypeInt;
-            break;
-        case 'B':   // bool
-            sqliteType = KIZSQLiteTypeNumber;
-            break;
-        case '@':
-        {
-            NSString *clsStr = [NSString stringWithUTF8String:type];
-            clsStr = [clsStr stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"@" withString:@""];
-            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"\"" withString:@""];
-            
-            Class cls = NSClassFromString(clsStr);
-            
-            if ([cls isSubclassOfClass:NSString.class] || [cls isSubclassOfClass:NSMutableString.class]) {
-                sqliteType = KIZSQLiteTypeText;
-            }
-            
-            else if ([cls isSubclassOfClass:NSNumber.class]) {
-                sqliteType = KIZSQLiteTypeNumber;
-            }
-            
-            else if ([cls isSubclassOfClass:NSDate.class]) {
-                sqliteType = KIZSQLiteTypeDate;
-            }
-            
-            else if ([cls isSubclassOfClass:NSData.class]) {
-                sqliteType = KIZSQLiteTypeBLOB;
-            }
-            
-            //其他类型不支持
-            
-            break;
-        }
-        default:{
-            //默认为字符串类型
-            sqliteType = KIZSQLiteTypeText;
-        }
-    }
-    
-    free(type);
-    
-    return sqliteType;
-}
-//
-//static Class getClassByProperty(objc_property_t property){
-//    char *type = property_copyAttributeValue(property, "T");
-//    if (type[0] == '@') {
-//        NSString *clsStr = [NSString stringWithUTF8String:type];
-//        clsStr = [clsStr stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-//        clsStr = [clsStr stringByReplacingOccurrencesOfString:@"@" withString:@""];
-//        clsStr = [clsStr stringByReplacingOccurrencesOfString:@"\"" withString:@""];
-//        
-//        Class cls = NSClassFromString(clsStr);
-//        return cls;
-//    }
-//    return nil;
-//}
+            return KIZPropertyTypeFloat;
 
-static KIZPropertyType setUpClassProperty(KIZDBClassProperty *classProperty, objc_property_t property)
-{
-    char *type = property_copyAttributeValue(property, "T");
-    NSString *sqliteType = nil;
-    switch (type[0]) {
-        case 'f':   // float
-        case 'd':   // double
-            classProperty.propertyType = KIZPropertyTypeFloat;
-            break;
-            
-        case 'B':   // bool
         case 'c':   // char、BOOL
         case 'C':   // unsigned char、Boolean
         case 's':   // short
@@ -935,48 +848,30 @@ static KIZPropertyType setUpClassProperty(KIZDBClassProperty *classProperty, obj
         case 'L':   // unsigned long
         case 'q':   // longl long、 NSInteger
         case 'Q':   // usigned long long、 NSUInteger
-            classProperty.propertyType = KIZPropertyTypeInteger;
-            break;
+        case 'B':
+            return KIZPropertyTypeInteger;
             
         case '@':
         {
-            NSString *clsStr = [NSString stringWithUTF8String:type];
-            clsStr = [clsStr stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"@" withString:@""];
-            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"\"" withString:@""];
-            
-            Class cls = NSClassFromString(clsStr);
-            
-            if ([cls isSubclassOfClass:NSString.class] || [cls isSubclassOfClass:NSMutableString.class]) {
-                sqliteType = KIZSQLiteTypeText;
-            }
-            
-            else if ([cls isSubclassOfClass:NSNumber.class]) {
-                sqliteType = KIZSQLiteTypeNumber;
-            }
-            
-            else if ([cls isSubclassOfClass:NSDate.class]) {
-                sqliteType = KIZSQLiteTypeDate;
-            }
-            
-            else if ([cls isSubclassOfClass:NSData.class]) {
-                sqliteType = KIZSQLiteTypeBLOB;
-            }
-            
-            //其他类型不支持
+//            NSString *clsStr = [NSString stringWithUTF8String:type];
+//            clsStr = [clsStr stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+//            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"@" withString:@""];
+//            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"\"" withString:@""];
+//            
+//            Class cls = NSClassFromString(clsStr);
+//            
+//            //其他类型不支持
             
             break;
         }
-        default:{
-            //默认为字符串类型
-            sqliteType = KIZSQLiteTypeText;
-        }
+        
     }
     
     free(type);
     
-    return sqliteType;
+    return KIZPropertyTypeString;
 }
+
 
 /**
  将ResutlSet转换成aclass指定的对象
@@ -999,32 +894,38 @@ static KIZPropertyType setUpClassProperty(KIZDBClassProperty *classProperty, obj
         [classProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull obj, BOOL * _Nonnull stop) {
             
             NSString *columnName = obj.dbColumnName;
-            NSString *declType   = obj.dbColumnType;
             
             int columnIndex = [rs columnIndexForName:columnName];
             id  columnValue;
             
-            if ([declType isEqualToString:KIZSQLiteTypeText]) {
-                columnValue = [rs stringForColumnIndex:columnIndex];
-                
-            }else if ([declType isEqualToString:KIZSQLiteTypeInt]){
-                columnValue = [NSNumber numberWithInt:[rs intForColumnIndex:columnIndex]];
-                
-            }else if ([declType isEqualToString:KIZSQLiteTypeReal]){
-                columnValue = [NSNumber numberWithDouble:[rs doubleForColumnIndex:columnIndex]];
-                
-            }else if ([declType isEqualToString:KIZSQLiteTypeBLOB]){
-                columnValue = [rs dataForColumnIndex:columnIndex];
-                
-            }else if ([declType isEqualToString:KIZSQLiteTypeDate]){
-                columnValue = [rs dateForColumnIndex:columnIndex];
-                
-            }else if ([declType isEqualToString:KIZSQLiteTypeNumber]){
-                columnValue = [NSNumber numberWithDouble:[rs doubleForColumnIndex:columnIndex]];
-                
-            }else{
-                columnValue = [rs stringForColumnIndex:columnIndex];
+            switch (obj.propertyType) {
+                case KIZPropertyTypeString: {
+                    columnValue = [rs stringForColumnIndex:columnIndex];
+                    break;
+                }
+                case KIZPropertyTypeInteger: {
+                    columnValue = [NSNumber numberWithLongLong:[rs longLongIntForColumnIndex:columnIndex]];
+                    break;
+                }
+                case KIZPropertyTypeFloat: {
+                    columnValue = [NSNumber numberWithDouble:[rs doubleForColumnIndex:columnIndex]];
+                    break;
+                }
+                case KIZPropertyTypeBlob: {
+                    columnValue = [rs dataForColumnIndex:columnIndex];
+                    break;
+                }
+                case KIZPropertyTypeDate: {
+                    columnValue = [rs dateForColumnIndex:columnIndex];
+                    break;
+                }
+                case KIZPropertyTypeKIZObj: {
+                    //TODO
+                    break;
+                }
             }
+            
+            
             
             [instance setValue:columnValue forKeyPath:propertyName];
             

@@ -25,7 +25,8 @@
 		4462B0F31C45E4FD00D8B1DB /* FMResultSet.m in Sources */ = {isa = PBXBuildFile; fileRef = 4462B0EE1C45E4FD00D8B1DB /* FMResultSet.m */; };
 		4462B0F51C45E72000D8B1DB /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4462B0F41C45E72000D8B1DB /* libsqlite3.tbd */; };
 		4462B0F81C45FEAE00D8B1DB /* NSObject+KIZFMDB_Select.m in Sources */ = {isa = PBXBuildFile; fileRef = 4462B0F71C45FEAE00D8B1DB /* NSObject+KIZFMDB_Select.m */; };
-		4462B0FD1C4655B900D8B1DB /* User.m in Sources */ = {isa = PBXBuildFile; fileRef = 4462B0FC1C4655B900D8B1DB /* User.m */; };
+		4462B0FD1C4655B900D8B1DB /* Person.m in Sources */ = {isa = PBXBuildFile; fileRef = 4462B0FC1C4655B900D8B1DB /* Person.m */; };
+		446E2E221C4945130037403B /* IDCard.m in Sources */ = {isa = PBXBuildFile; fileRef = 446E2E211C4945130037403B /* IDCard.m */; };
 		447782FA1C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m in Sources */ = {isa = PBXBuildFile; fileRef = 447782F91C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m */; };
 		44B04F5F1C48E51500DED63C /* KIZValueTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 44B04F5E1C48E51500DED63C /* KIZValueTransformer.m */; };
 /* End PBXBuildFile section */
@@ -87,8 +88,10 @@
 		4462B0F41C45E72000D8B1DB /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		4462B0F61C45FEAE00D8B1DB /* NSObject+KIZFMDB_Select.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+KIZFMDB_Select.h"; sourceTree = "<group>"; };
 		4462B0F71C45FEAE00D8B1DB /* NSObject+KIZFMDB_Select.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+KIZFMDB_Select.m"; sourceTree = "<group>"; };
-		4462B0FB1C4655B900D8B1DB /* User.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = User.h; sourceTree = "<group>"; };
-		4462B0FC1C4655B900D8B1DB /* User.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = User.m; sourceTree = "<group>"; };
+		4462B0FB1C4655B900D8B1DB /* Person.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Person.h; sourceTree = "<group>"; };
+		4462B0FC1C4655B900D8B1DB /* Person.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Person.m; sourceTree = "<group>"; };
+		446E2E201C4945130037403B /* IDCard.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDCard.h; sourceTree = "<group>"; };
+		446E2E211C4945130037403B /* IDCard.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = IDCard.m; sourceTree = "<group>"; };
 		447782F81C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+KIZFMDB_Table.h"; sourceTree = "<group>"; };
 		447782F91C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+KIZFMDB_Table.m"; sourceTree = "<group>"; };
 		44B04F5D1C48E51500DED63C /* KIZValueTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KIZValueTransformer.h; sourceTree = "<group>"; };
@@ -238,8 +241,10 @@
 		4462B0FA1C4655A200D8B1DB /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				4462B0FB1C4655B900D8B1DB /* User.h */,
-				4462B0FC1C4655B900D8B1DB /* User.m */,
+				4462B0FB1C4655B900D8B1DB /* Person.h */,
+				4462B0FC1C4655B900D8B1DB /* Person.m */,
+				446E2E201C4945130037403B /* IDCard.h */,
+				446E2E211C4945130037403B /* IDCard.m */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -375,7 +380,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				447782FA1C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m in Sources */,
-				4462B0FD1C4655B900D8B1DB /* User.m in Sources */,
+				4462B0FD1C4655B900D8B1DB /* Person.m in Sources */,
 				4462B0AC1C45E45500D8B1DB /* ViewController.m in Sources */,
 				4462B0A91C45E45500D8B1DB /* AppDelegate.m in Sources */,
 				4462B0E11C45E4C400D8B1DB /* KIZDBManager.m in Sources */,
@@ -384,6 +389,7 @@
 				4462B0F21C45E4FD00D8B1DB /* FMDatabaseQueue.m in Sources */,
 				44B04F5F1C48E51500DED63C /* KIZValueTransformer.m in Sources */,
 				4462B0E21C45E4C400D8B1DB /* NSObject+KIZFMDB.m in Sources */,
+				446E2E221C4945130037403B /* IDCard.m in Sources */,
 				4462B0E01C45E4C400D8B1DB /* KIZDBClassProperty.m in Sources */,
 				4462B0F31C45E4FD00D8B1DB /* FMResultSet.m in Sources */,
 				4462B0F81C45FEAE00D8B1DB /* NSObject+KIZFMDB_Select.m in Sources */,

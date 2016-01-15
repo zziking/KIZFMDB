@@ -7,7 +7,7 @@
 //
 
 #import <XCTest/XCTest.h>
-#import "User.h"
+#import "Person.h"
 
 @interface KIZFMDBTests : XCTestCase
 
@@ -39,7 +39,7 @@
 
 - (void)testCreateTable{
     NSError *error = nil;
-    [User kiz_createTableWithError:&error];
+    [Person kiz_createTableWithError:&error];
     NSLog(@"%@", error);
     XCTAssert(!error);
 }
@@ -47,7 +47,7 @@
 - (void)testSave{
     NSError *error = nil;
     
-    User *user = [User new];
+    Person *user = [Person new];
     user.userName  = @"张三";
     user.birthDate = [NSDate date];
     user.longValue = LONG_MAX;
@@ -61,15 +61,15 @@
     
     NSError *error = nil;
     
-    User *user1 = [User new];
+    Person *user1 = [Person new];
     user1.userName  = @"李四";
     user1.birthDate = [self dateWithFormat:@"1990-02-28"];
     
-    User *user2 = [User new];
+    Person *user2 = [Person new];
     user2.userName  = @"王五";
     user2.birthDate = [self dateWithFormat:@"1991-03-30"];
     
-    [User kiz_batchSave:@[user1, user2] error:&error];
+    [Person kiz_batchSave:@[user1, user2] error:&error];
     
     XCTAssert(error == nil);
     
@@ -78,7 +78,7 @@
 - (void)testUpdate{
     NSError *error = nil;
     
-    User *user = [User new];
+    Person *user = [Person new];
     user.userName  = @"张三";
     user.birthDate = [NSDate date];
     
@@ -90,7 +90,7 @@
 - (void)testUpdateWithProperties{
     NSError *error = nil;
     
-    User *user = [User new];
+    Person *user = [Person new];
     user.userName  = @"张三";
     user.birthDate = [NSDate date];
     
@@ -102,7 +102,7 @@
 - (void)testSelect{
     NSError *error = nil;
     
-    NSArray *users = [User kiz_selectWhere:nil arguments:nil error:&error];
+    NSArray *users = [Person kiz_selectWhere:nil arguments:nil error:&error];
     NSLog(@"%@", users);
     
     XCTAssert(error == nil);
