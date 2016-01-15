@@ -606,14 +606,41 @@ NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBE
             [scanner scanString:@"T" intoString:nil];
             
             NSString *propertyType;
+            
             //property的类型是class
             if ([scanner scanString:@"@\"" intoString: &propertyType]) {
                 
                 [scanner scanUpToCharactersFromSet:[NSCharacterSet characterSetWithCharactersInString:@"\"<"]
                                         intoString:&propertyType];
                 
+                //read through the property protocols
+                while ([scanner scanString:@"<" intoString:NULL]) {
+                    
+                    NSString* protocolName = nil;
+                    
+                    [scanner scanUpToString:@">" intoString: &protocolName];
+                    
+                    classProperty.protocolName = protocolName;
+
+                    
+                    [scanner scanString:@">" intoString:NULL];
+                }
+                
                 classProperty.classType = NSClassFromString(propertyType);
                 classProperty.isMutable = ([propertyType rangeOfString:@"Mutable"].location != NSNotFound);
+                
+            }
+            //property 的类型是结构体 structure
+            else if ([scanner scanString:@"{" intoString: &propertyType]) {
+                [scanner scanCharactersFromSet:[NSCharacterSet alphanumericCharacterSet]
+                                    intoString:&propertyType];
+                
+                classProperty.isStandardType = NO;
+                classProperty.structName     = propertyType;
+                
+            }
+            //property是基本数据类型
+            else{
                 
             }
             
@@ -872,7 +899,7 @@ NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBE
     
     return sqliteType;
 }
-
+//
 //static Class getClassByProperty(objc_property_t property){
 //    char *type = property_copyAttributeValue(property, "T");
 //    if (type[0] == '@') {
@@ -886,6 +913,70 @@ NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBE
 //    }
 //    return nil;
 //}
+
+static KIZPropertyType setUpClassProperty(KIZDBClassProperty *classProperty, objc_property_t property)
+{
+    char *type = property_copyAttributeValue(property, "T");
+    NSString *sqliteType = nil;
+    switch (type[0]) {
+        case 'f':   // float
+        case 'd':   // double
+            classProperty.propertyType = KIZPropertyTypeFloat;
+            break;
+            
+        case 'B':   // bool
+        case 'c':   // char、BOOL
+        case 'C':   // unsigned char、Boolean
+        case 's':   // short
+        case 'S':   // unsigned short
+        case 'i':   // int
+        case 'I':   // unsigned int
+        case 'l':   // long
+        case 'L':   // unsigned long
+        case 'q':   // longl long、 NSInteger
+        case 'Q':   // usigned long long、 NSUInteger
+            classProperty.propertyType = KIZPropertyTypeInteger;
+            break;
+            
+        case '@':
+        {
+            NSString *clsStr = [NSString stringWithUTF8String:type];
+            clsStr = [clsStr stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"@" withString:@""];
+            clsStr = [clsStr stringByReplacingOccurrencesOfString:@"\"" withString:@""];
+            
+            Class cls = NSClassFromString(clsStr);
+            
+            if ([cls isSubclassOfClass:NSString.class] || [cls isSubclassOfClass:NSMutableString.class]) {
+                sqliteType = KIZSQLiteTypeText;
+            }
+            
+            else if ([cls isSubclassOfClass:NSNumber.class]) {
+                sqliteType = KIZSQLiteTypeNumber;
+            }
+            
+            else if ([cls isSubclassOfClass:NSDate.class]) {
+                sqliteType = KIZSQLiteTypeDate;
+            }
+            
+            else if ([cls isSubclassOfClass:NSData.class]) {
+                sqliteType = KIZSQLiteTypeBLOB;
+            }
+            
+            //其他类型不支持
+            
+            break;
+        }
+        default:{
+            //默认为字符串类型
+            sqliteType = KIZSQLiteTypeText;
+        }
+    }
+    
+    free(type);
+    
+    return sqliteType;
+}
 
 /**
  将ResutlSet转换成aclass指定的对象
