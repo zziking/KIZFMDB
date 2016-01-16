@@ -10,6 +10,7 @@
 #import "KIZDBClassProperty.h"
 #import "FMDatabaseQueue.h"
 #import "FMDatabase.h"
+#import "FMDatabaseAdditions.h"
 
 static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
 
@@ -19,7 +20,9 @@ static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
 
 @end
 
-@implementation KIZDBManager
+@implementation KIZDBManager{
+    int _currentDBVersion; //database version
+}
 
 + (instancetype)sharedInstance{
     static KIZDBManager *sharedInstance = nil;
@@ -61,6 +64,83 @@ static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
     path = [path stringByAppendingFormat:@"/%@.sqlite", KIZFMDBQueue];
     
     _fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:path];
+
+    _currentDBVersion = self.dbVersion;
+}
+
+
+/** 更改数据库路径 */
+- (void)changeDataBasePath:(NSString *)filePath{
+    
+    @synchronized(self.fmdbQueue) {
+        
+        if ([self.fmdbQueue.path isEqualToString:filePath]) {
+            return;
+        }
+        
+        NSFileManager* fileManager = [NSFileManager defaultManager];
+        // 创建数据库目录
+        NSRange lastComponent = [filePath rangeOfString:@"/" options:NSBackwardsSearch];
+        
+        if (lastComponent.length > 0) {
+            NSString* dirPath = [filePath substringToIndex:lastComponent.location];
+            BOOL isDir = NO;
+            BOOL isCreated = [fileManager fileExistsAtPath:dirPath isDirectory:&isDir];
+            
+            if ((isCreated == NO) || (isDir == NO)) {
+                NSError* error = nil;
+                
+                BOOL success = [fileManager createDirectoryAtPath:dirPath
+                                      withIntermediateDirectories:YES
+                                                       attributes:nil
+                                                            error:&error];
+                
+                if (success == NO) {
+                    NSLog(@"create dir error: %@", error.debugDescription);
+                }
+            }
+            
+        }
+        
+        self.fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:filePath];
+        
+        //切换了数据库路径时，也要判断是否要升级数据库
+        if (self.fmdbQueue && _currentDBVersion != self.dbVersion) {
+            [self setDbVersion:_currentDBVersion];
+        }
+        
+    }
+    
+}
+
+- (int)dbVersion{
+    __block int version = 0;
+    [self.fmdbQueue inDatabase:^(FMDatabase *db) {
+        version = db.userVersion;
+    }];
+
+    return version;
+}
+
+- (void)setDbVersion:(int)version{
+    
+    int dbVersion = self.dbVersion;
+    
+    if (dbVersion == version) {
+        return;
+    }
+    
+    if (self.upgradeBlock) {
+        self.upgradeBlock(self.fmdbQueue, dbVersion, version);
+    }else if ([self.delegate respondsToSelector:@selector(dataBaseQueue:upgradeFromVersion:toVersion:)]){
+        [self.delegate dataBaseQueue:self.fmdbQueue upgradeFromVersion:dbVersion toVersion:version];
+    }
+    
+    [self.fmdbQueue inDatabase:^(FMDatabase *db) {
+        [db setUserVersion:version];
+    }];
+    
+    _currentDBVersion = version;
 }
 
 @end

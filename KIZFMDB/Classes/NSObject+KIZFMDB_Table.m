@@ -173,7 +173,9 @@ static NSString* tableColumnFieldWithClassProperty(KIZDBClassProperty *classProp
     NSDictionary<NSString *, KIZDBClassProperty *> *classPropertyDic = [(Class)clazz kiz_getDBClassProperties];
     [classPropertyDic enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
         
-        [sql appendFormat:@"%@,", tableColumnFieldWithClassProperty(classProperty)];
+        if (classProperty.propertyType != KIZPropertyTypeKIZObj) {
+            [sql appendFormat:@"%@,", tableColumnFieldWithClassProperty(classProperty)];
+        }
         
     }];
     

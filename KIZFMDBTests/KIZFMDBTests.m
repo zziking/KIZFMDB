@@ -8,6 +8,9 @@
 
 #import <XCTest/XCTest.h>
 #import "Person.h"
+#import "KIZDBManager.h"
+#import "FMDatabaseQueue.h"
+#import "FMDatabase.h"
 
 @interface KIZFMDBTests : XCTestCase
 
@@ -37,7 +40,28 @@
     }];
 }
 
+- (void)testUpgradeDataBase{
+    
+    [[KIZDBManager sharedInstance] setUpgradeBlock:^(FMDatabaseQueue *dbQueue, int fromVersion, int toVersion){
+        NSLog(@"升级===");
+        __block BOOL success = YES;
+        [dbQueue inTransaction:^(FMDatabase *db, BOOL *rollback) {
+            success = [db executeUpdate:@"DROP TABLE IF EXIST Person"];
+        }];
+        NSLog(@"升级%@", success ? @"success" : @"failure");
+    }];
+    [[KIZDBManager sharedInstance] setDbVersion:3];
+    
+    NSString *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    
+    path = [path stringByAppendingString:@"/test/test.db"];
+    
+//    [[KIZDBManager sharedInstance] changeDataBasePath:path];
+    
+}
+
 - (void)testCreateTable{
+    
     NSError *error = nil;
     [Person kiz_createTableWithError:&error];
     NSLog(@"%@", error);
