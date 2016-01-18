@@ -98,11 +98,16 @@ static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
                 if (success == NO) {
                     NSLog(@"create dir error: %@", error.debugDescription);
                 }
+                
+                self.fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:filePath];
+                
+            }else{
+                self.fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:filePath];
+                _currentDBVersion = self.dbVersion;
             }
             
         }
         
-        self.fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:filePath];
         
         //切换了数据库路径时，也要判断是否要升级数据库
         if (self.fmdbQueue && _currentDBVersion != self.dbVersion) {

@@ -18,16 +18,6 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     KIZDBOperateDelete
 };
 
-//see http://www.sqlite.org/datatype3.html
-
-//NSString *const KIZSQLiteTypeText    = @"TEXT";//UTF-8、UTF16BE、UTF-16LE编码存储的字符类型， VARCHAR、NVARCHAR、CLOB
-//NSString *const KIZSQLiteTypeReal    = @"REAL";//浮点类型 REAL、DOUBLE、DOUBLE PRECISION、FLOAT
-//NSString *const KIZSQLiteTypeInt     = @"INTEGER";//有符号整型 INT、INTEGER、TINYINT、SMALLINT、MEDIUMINT、BIGINT、UNSIGNED BIG INT
-//NSString *const KIZSQLiteTypeBLOB    = @"NONE";//二进制数据类型
-//NSString *const KIZSQLiteTypeNumber  = @"NUMBERIC";// NUMERIC、DECIMAL(10,5)、 BOOLEAN、 DATE、DATETIME
-//NSString *const KIZSQLiteTypeDate    = @"DATETIME";// 实际在Sqlite中为NUMBERIC类型，为了区分NSDate，增加此类型
-
-
 #pragma clang diagnostic ignored "-Wprotocol"
 
 @implementation NSObject (KIZFMDB)
@@ -69,8 +59,7 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     
 }
 
-/** 同步 SaveOrUpdate */
-- (BOOL)kiz_saveOrUpdateWithError:(NSError **)error{
+- (BOOL)kiz_saveOrUpdateInDatabase:(FMDatabase *)database error:(NSError *__autoreleasing *)error{
     
     AssetDBNotNil;
     
@@ -79,14 +68,71 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     
     //执行SQL语句，插入数据
     __block BOOL success = YES;
-    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
-        success = [db executeUpdate:sql withArgumentsInArray:values];
+    
+    if (database) {
+        
+        success = [database executeUpdate:sql withArgumentsInArray:values];
+        
+        //更新关联对象
+        NSDictionary<NSString *, KIZDBClassProperty *> *relateProperties = [self.class kiz_getDBRelateProperties];
+        [relateProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
+            id relateObj = [self valueForKey:propertyName];
+            if (relateObj) {
+                success = [relateObj kiz_saveOrUpdateInDatabase:database error:error];
+                if (!success) {
+                    *stop = YES;
+                }
+            }
+        }];
+        
+        
         if (error) {
-            *error = success ? nil : db.lastError;
+            *error = success ? nil : database.lastError;
         }
-    }];
+        
+    }else{
+        
+        [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
+            
+            success = [db executeUpdate:sql withArgumentsInArray:values];
+            
+            //更新关联对象
+            NSDictionary<NSString *, KIZDBClassProperty *> *relateProperties = [self.class kiz_getDBRelateProperties];
+            [relateProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
+                id relateObj = [self valueForKey:propertyName];
+                if (relateObj) {
+                    success = [relateObj kiz_saveOrUpdateInDatabase:database error:error];
+                }
+            }];
+            
+            if (error) {
+                *error = success ? nil : db.lastError;
+            }
+            
+        }];
+    }
     
     return success;
+}
+
+/** 同步 SaveOrUpdate */
+- (BOOL)kiz_saveOrUpdateWithError:(NSError **)error{
+    
+//    AssetDBNotNil;
+//    
+//    NSArray *values = nil;
+//    NSString *sql = [self __buildSaveOrReplaceSql:KIZDBOperateReplace arguments:&values];
+//    
+//    //执行SQL语句，插入数据
+//    __block BOOL success = YES;
+//    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
+//        success = [db executeUpdate:sql withArgumentsInArray:values];
+//        if (error) {
+//            *error = success ? nil : db.lastError;
+//        }
+//    }];
+    
+    return [self kiz_saveOrUpdateInDatabase:nil error:error];
 }
 
 /** 异步 SaveOrUpdate */
@@ -297,10 +343,18 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         
         for (NSObject *obj in objects) {
             
-            NSArray *values = nil;
-            NSString *sql   = [obj __buildSaveOrReplaceSql:KIZDBOperateReplace arguments:&values];
+//            NSArray *values = nil;
+//            NSString *sql   = [obj __buildSaveOrReplaceSql:KIZDBOperateReplace arguments:&values];
+//            
+//            NSDictionary<NSString *, KIZDBClassProperty *> *relateProperties = [obj.class kiz_getDBRelateProperties];
+//            [relateProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
+//                if ([obj valueForKey:propertyName]) {
+//                
+//                }
+//            }];
             
-            BOOL success = [db executeUpdate:sql withArgumentsInArray:values];
+            
+            BOOL success = [obj kiz_saveOrUpdateInDatabase:db error:error];//[db executeUpdate:sql withArgumentsInArray:values];
             if (!success) {
                 //有一条数据插入失败则回滚
                 *rollback = YES;
@@ -440,6 +494,7 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         }
         
         [rs close];
+        
     }];
     
     return results;
@@ -528,13 +583,20 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     NSDictionary *dic = objc_getAssociatedObject(self.class, @selector(kiz_getDBClassProperties));
     
     if (!dic) {
-        dic = [self kiz_initDBClassProperties];
-        //缓存属性到类中
-        objc_setAssociatedObject(self.class,
-                                 @selector(kiz_getDBClassProperties),
-                                 dic,
-                                 OBJC_ASSOCIATION_RETAIN    //atomic
-                                 );
+        [self kiz_initDBClassProperties];
+        dic = objc_getAssociatedObject(self.class, @selector(kiz_getDBClassProperties));
+    }
+    
+    return dic;
+}
+
+/**  */
++ (NSDictionary<NSString *, KIZDBClassProperty *> *)kiz_getDBRelateProperties{
+    NSDictionary *dic = objc_getAssociatedObject(self.class, @selector(kiz_getDBRelateProperties));
+    
+    if (!dic) {
+        [self kiz_initDBClassProperties];
+        dic = objc_getAssociatedObject(self.class, @selector(kiz_getDBRelateProperties));
     }
     
     return dic;
@@ -543,11 +605,12 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
 /**
  *  初始化Class的类属性数据
  *
- *  @return
+ *  @return <属性名, classProperty>
  */
-+ (NSMutableDictionary<NSString *, KIZDBClassProperty *> *)kiz_initDBClassProperties{
++ (void)kiz_initDBClassProperties{
     
-    NSMutableDictionary<NSString *, KIZDBClassProperty *> *propertyDic = [NSMutableDictionary dictionary];
+    NSMutableDictionary<NSString *, KIZDBClassProperty *> *propertyDic          = [NSMutableDictionary dictionary];
+    NSMutableDictionary<NSString *, KIZDBClassProperty *> *relatePropertyDic    = [NSMutableDictionary dictionary];//是关联对象，且可以保存到数据库的属性
     
     Class class = [self class];
     
@@ -563,9 +626,11 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         objc_property_t *propertyList = class_copyPropertyList(targetClass, &propertyCount);
         
         //遍历class的property
-        for (int i=0; i<propertyCount; i++) {
+        for (unsigned int i=0; i<propertyCount; i++) {
             
             KIZDBClassProperty *classProperty = [[KIZDBClassProperty alloc] init];
+            
+            BOOL isKIZRelateObj = NO; //是否是关联对象
             
             //获得property名称
             objc_property_t property = propertyList[i];
@@ -612,14 +677,28 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
                     
                     [scanner scanUpToString:@">" intoString: &protocolName];
                     
-                    classProperty.protocolName = protocolName;
-
+                    if ([protocolName isEqualToString:@"KIZOneToOne"]) {
+                        isKIZRelateObj = YES;
+                    }else{
+                        if (NSClassFromString(protocolName)) {
+                            classProperty.protocolName = protocolName;
+                        }
+                    }
                     
                     [scanner scanString:@">" intoString:NULL];
                 }
                 
-                classProperty.classType = NSClassFromString(propertyType);
-                classProperty.isMutable = ([propertyType rangeOfString:@"Mutable"].location != NSNotFound);
+                Class cls = NSClassFromString(propertyType);
+                if (cls) {
+                    
+                    classProperty.classType = NSClassFromString(propertyType);
+                    classProperty.isMutable = ([propertyType rangeOfString:@"Mutable"].location != NSNotFound);
+                    
+                }else{
+                    //声明类型为id
+                    
+                }
+                
                 
             }
             //property 的类型是结构体 structure
@@ -639,7 +718,12 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
             }
             
             //添加到字典中
-            [propertyDic setValue:classProperty forKey:propertyName];
+            if (! isKIZRelateObj) {
+                [propertyDic setValue:classProperty forKey:propertyName];
+            }else{
+                [relatePropertyDic setObject:classProperty forKey:propertyName];
+            }
+            
             
         }
         
@@ -653,7 +737,19 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         free(propertyList);
     }
 
-    return propertyDic;
+    //缓存属性到类中
+    objc_setAssociatedObject(self.class,
+                             @selector(kiz_getDBClassProperties),
+                             propertyDic,
+                             OBJC_ASSOCIATION_RETAIN    //atomic
+                             );
+    
+    //缓存属性到类中
+    objc_setAssociatedObject(self.class,
+                             @selector(kiz_getDBRelateProperties),
+                             relatePropertyDic,
+                             OBJC_ASSOCIATION_RETAIN    //atomic
+                             );
 }
 
 /**
@@ -919,10 +1015,7 @@ static KIZPropertyType propertyTypeFromObjcPropertyT(objc_property_t property)
                     columnValue = [rs dateForColumnIndex:columnIndex];
                     break;
                 }
-                case KIZPropertyTypeKIZObj: {
-                    //TODO
-                    break;
-                }
+                
             }
             
             

@@ -14,7 +14,6 @@ typedef NS_ENUM(NSUInteger, KIZPropertyType) {
     KIZPropertyTypeFloat,  //浮点数
     KIZPropertyTypeBlob,   //二进制格式
     KIZPropertyTypeDate,   //日期格式
-    KIZPropertyTypeKIZObj, //实现了KIZDBProtocol的对象，对象以外键关联方式存储在独立的表
 };
 
 @interface KIZDBClassProperty : NSObject

@@ -46,10 +46,6 @@ static NSString *const KIZSQLiteTypeNumber  = @"NUMBERIC";// NUMERIC、DECIMAL(1
             self.dbColumnType = KIZSQLiteTypeNumber;
             break;
         }
-        case KIZPropertyTypeKIZObj: {
-            self.dbColumnType = KIZSQLiteTypeInt;
-            break;
-        }
     }
 }
 
@@ -75,11 +71,6 @@ static NSString *const KIZSQLiteTypeNumber  = @"NUMBERIC";// NUMERIC、DECIMAL(1
     
     else if ([cls isSubclassOfClass:NSArray.class]){
         //TODO
-    }
-    
-    else if ([cls conformsToProtocol:@protocol(KIZDBProtocol)]){
-        //关联了一个实现了KIZDBProtocol协议的对象
-        self.propertyType = KIZPropertyTypeKIZObj;
     }
     
     //其他类型数据以String存储

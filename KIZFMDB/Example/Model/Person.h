@@ -10,6 +10,10 @@
 #import "KIZDBProtocol.h"
 #import "IDCard.h"
 
+@protocol TestProtocol <NSObject>
+@end
+
+
 @interface Person : NSObject<KIZDBProtocol>
 
 @property (nonatomic, assign) NSInteger userId;
@@ -20,6 +24,6 @@
 
 @property (nonatomic, assign) long longValue;
 
-@property (nonatomic, strong) IDCard *idCard;
+@property (nonatomic, strong) IDCard<KIZOneToOne, TestProtocol> *idCard;
 
 @end

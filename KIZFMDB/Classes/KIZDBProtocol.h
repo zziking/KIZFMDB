@@ -12,6 +12,10 @@
 
 typedef void(^KIZDBOperateCompletion)(NSError *error);
 
+/** 属性是一对一关联对象 */
+@protocol KIZOneToOne <NSObject>
+@end
+
 
 @protocol KIZDBTableProtocol <NSObject>
 
@@ -51,6 +55,9 @@ typedef void(^KIZDBOperateCompletion)(NSError *error);
 + (NSArray<NSString *> *)kiz_autoIncrementProperties;
 /** 属性-默认值, 注意只在创建表时才有效，ALTER TABLE 时不支持设置默认值 */
 + (NSDictionary<NSString *, NSString *> *)kiz_propertyDefaultValues;
+
+/** 关联对象的外键 */
++ (NSString *)kiz_forieignKeyForProperty:(NSString *)property;
 
 @required
 /**

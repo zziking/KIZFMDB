@@ -11,6 +11,7 @@
 #import "KIZDBManager.h"
 #import "FMDatabaseQueue.h"
 #import "FMDatabase.h"
+#import "IDCard.h"
 
 @interface KIZFMDBTests : XCTestCase
 
@@ -64,6 +65,7 @@
     
     NSError *error = nil;
     [Person kiz_createTableWithError:&error];
+    [IDCard kiz_createTableWithError:&error];
     NSLog(@"%@", error);
     XCTAssert(!error);
 }
@@ -98,6 +100,35 @@
     XCTAssert(error == nil);
     
 }
+
+- (void)testBatchSaveOrUpdate{
+    
+    NSError *error = nil;
+    
+    Person *user1 = [Person new];
+    user1.userId = 1;
+    user1.userName  = @"李四";
+    user1.birthDate = [self dateWithFormat:@"1990-02-28"];
+    
+    IDCard *card1 = [IDCard new];
+    card1.id = user1.userId;
+    user1.idCard = (id)card1;
+    
+    Person *user2 = [Person new];
+    user2.userId = 2;
+    user2.userName  = @"王五";
+    user2.birthDate = [self dateWithFormat:@"1991-03-30"];
+    
+    IDCard *card2 = [IDCard new];
+    card2.id = user2.userId;
+    user2.idCard = (id)card2;
+    
+    [Person kiz_batchSaveOrUpdate:@[user1, user2] error:&error];
+    
+    XCTAssert(error == nil);
+    
+}
+
 
 - (void)testUpdate{
     NSError *error = nil;
