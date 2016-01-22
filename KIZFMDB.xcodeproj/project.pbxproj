@@ -29,6 +29,7 @@
 		446E2E221C4945130037403B /* IDCard.m in Sources */ = {isa = PBXBuildFile; fileRef = 446E2E211C4945130037403B /* IDCard.m */; };
 		447782FA1C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m in Sources */ = {isa = PBXBuildFile; fileRef = 447782F91C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m */; };
 		44B04F5F1C48E51500DED63C /* KIZValueTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 44B04F5E1C48E51500DED63C /* KIZValueTransformer.m */; };
+		44C4533E1C523BB90046D004 /* KIZDatabaseQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 44C4533D1C523BB90046D004 /* KIZDatabaseQueue.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +97,8 @@
 		447782F91C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+KIZFMDB_Table.m"; sourceTree = "<group>"; };
 		44B04F5D1C48E51500DED63C /* KIZValueTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KIZValueTransformer.h; sourceTree = "<group>"; };
 		44B04F5E1C48E51500DED63C /* KIZValueTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KIZValueTransformer.m; sourceTree = "<group>"; };
+		44C4533C1C523BB90046D004 /* KIZDatabaseQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KIZDatabaseQueue.h; sourceTree = "<group>"; };
+		44C4533D1C523BB90046D004 /* KIZDatabaseQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KIZDatabaseQueue.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,21 +196,23 @@
 		4462B0D71C45E4C400D8B1DB /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				44C4533C1C523BB90046D004 /* KIZDatabaseQueue.h */,
+				44C4533D1C523BB90046D004 /* KIZDatabaseQueue.m */,
 				4462B0D81C45E4C400D8B1DB /* KIZDBClassProperty.h */,
 				4462B0D91C45E4C400D8B1DB /* KIZDBClassProperty.m */,
 				4462B0DA1C45E4C400D8B1DB /* KIZDBManager.h */,
 				4462B0DB1C45E4C400D8B1DB /* KIZDBManager.m */,
 				4462B0DC1C45E4C400D8B1DB /* KIZDBProtocol.h */,
 				4462B0DD1C45E4C400D8B1DB /* KIZFMDB.h */,
-				4462B0DE1C45E4C400D8B1DB /* NSObject+KIZFMDB.h */,
-				4462B0DF1C45E4C400D8B1DB /* NSObject+KIZFMDB.m */,
+				4441D6241C472E6E007D5991 /* KIZFMDBPrivate.h */,
+				44B04F5D1C48E51500DED63C /* KIZValueTransformer.h */,
+				44B04F5E1C48E51500DED63C /* KIZValueTransformer.m */,
 				4462B0F61C45FEAE00D8B1DB /* NSObject+KIZFMDB_Select.h */,
 				4462B0F71C45FEAE00D8B1DB /* NSObject+KIZFMDB_Select.m */,
 				447782F81C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.h */,
 				447782F91C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m */,
-				4441D6241C472E6E007D5991 /* KIZFMDBPrivate.h */,
-				44B04F5D1C48E51500DED63C /* KIZValueTransformer.h */,
-				44B04F5E1C48E51500DED63C /* KIZValueTransformer.m */,
+				4462B0DE1C45E4C400D8B1DB /* NSObject+KIZFMDB.h */,
+				4462B0DF1C45E4C400D8B1DB /* NSObject+KIZFMDB.m */,
 			);
 			path = Classes;
 			sourceTree = "<group>";
@@ -384,6 +389,7 @@
 				4462B0AC1C45E45500D8B1DB /* ViewController.m in Sources */,
 				4462B0A91C45E45500D8B1DB /* AppDelegate.m in Sources */,
 				4462B0E11C45E4C400D8B1DB /* KIZDBManager.m in Sources */,
+				44C4533E1C523BB90046D004 /* KIZDatabaseQueue.m in Sources */,
 				4462B0EF1C45E4FD00D8B1DB /* FMDatabase.m in Sources */,
 				4462B0F11C45E4FD00D8B1DB /* FMDatabasePool.m in Sources */,
 				4462B0F21C45E4FD00D8B1DB /* FMDatabaseQueue.m in Sources */,

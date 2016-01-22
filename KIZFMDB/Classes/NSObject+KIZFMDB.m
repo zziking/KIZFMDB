@@ -59,7 +59,8 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     
 }
 
-- (BOOL)kiz_saveOrUpdateInDatabase:(FMDatabase *)database error:(NSError *__autoreleasing *)error{
+/** 同步 SaveOrUpdate */
+- (BOOL)kiz_saveOrUpdateWithError:(NSError **)error{
     
     AssetDBNotNil;
     
@@ -68,71 +69,30 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     
     //执行SQL语句，插入数据
     __block BOOL success = YES;
-    
-    if (database) {
+    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
+        success = [db executeUpdate:sql withArgumentsInArray:values];
         
-        success = [database executeUpdate:sql withArgumentsInArray:values];
-        
-        //更新关联对象
-        NSDictionary<NSString *, KIZDBClassProperty *> *relateProperties = [self.class kiz_getDBRelateProperties];
-        [relateProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
-            id relateObj = [self valueForKey:propertyName];
-            if (relateObj) {
-                success = [relateObj kiz_saveOrUpdateInDatabase:database error:error];
-                if (!success) {
-                    *stop = YES;
-                }
-            }
-        }];
-        
-        
-        if (error) {
-            *error = success ? nil : database.lastError;
-        }
-        
-    }else{
-        
-        [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
-            
-            success = [db executeUpdate:sql withArgumentsInArray:values];
-            
+        if (success) {
             //更新关联对象
             NSDictionary<NSString *, KIZDBClassProperty *> *relateProperties = [self.class kiz_getDBRelateProperties];
             [relateProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
                 id relateObj = [self valueForKey:propertyName];
                 if (relateObj) {
-                    success = [relateObj kiz_saveOrUpdateInDatabase:database error:error];
+                    success = [relateObj kiz_saveOrUpdateWithError:error];
+                    if (!success) {
+                        *stop = YES;
+                    }
                 }
             }];
-            
-            if (error) {
-                *error = success ? nil : db.lastError;
-            }
-            
-        }];
-    }
-    
+        }
+        
+        if (error) {
+            *error = success ? nil : db.lastError;
+        }
+    }];
+  
     return success;
-}
-
-/** 同步 SaveOrUpdate */
-- (BOOL)kiz_saveOrUpdateWithError:(NSError **)error{
-    
-//    AssetDBNotNil;
-//    
-//    NSArray *values = nil;
-//    NSString *sql = [self __buildSaveOrReplaceSql:KIZDBOperateReplace arguments:&values];
-//    
-//    //执行SQL语句，插入数据
-//    __block BOOL success = YES;
-//    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
-//        success = [db executeUpdate:sql withArgumentsInArray:values];
-//        if (error) {
-//            *error = success ? nil : db.lastError;
-//        }
-//    }];
-    
-    return [self kiz_saveOrUpdateInDatabase:nil error:error];
+//    return [self kiz_saveOrUpdateInDatabase:nil error:error];
 }
 
 /** 异步 SaveOrUpdate */
@@ -343,18 +303,8 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         
         for (NSObject *obj in objects) {
             
-//            NSArray *values = nil;
-//            NSString *sql   = [obj __buildSaveOrReplaceSql:KIZDBOperateReplace arguments:&values];
-//            
-//            NSDictionary<NSString *, KIZDBClassProperty *> *relateProperties = [obj.class kiz_getDBRelateProperties];
-//            [relateProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
-//                if ([obj valueForKey:propertyName]) {
-//                
-//                }
-//            }];
+            BOOL success = [obj kiz_saveOrUpdateWithError:error];
             
-            
-            BOOL success = [obj kiz_saveOrUpdateInDatabase:db error:error];//[db executeUpdate:sql withArgumentsInArray:values];
             if (!success) {
                 //有一条数据插入失败则回滚
                 *rollback = YES;
@@ -693,6 +643,10 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
                     
                     classProperty.classType = NSClassFromString(propertyType);
                     classProperty.isMutable = ([propertyType rangeOfString:@"Mutable"].location != NSNotFound);
+                    
+                    if ([cls conformsToProtocol:@protocol(KIZDBProtocol)]) {
+                        isKIZRelateObj = YES;
+                    }
                     
                 }else{
                     //声明类型为id

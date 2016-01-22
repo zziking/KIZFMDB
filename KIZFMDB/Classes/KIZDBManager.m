@@ -8,9 +8,9 @@
 
 #import "KIZDBManager.h"
 #import "KIZDBClassProperty.h"
-#import "FMDatabaseQueue.h"
 #import "FMDatabase.h"
 #import "FMDatabaseAdditions.h"
+#import "KIZDatabaseQueue.h"
 
 static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
 
@@ -63,11 +63,14 @@ static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
     
     path = [path stringByAppendingFormat:@"/%@.sqlite", KIZFMDBQueue];
     
-    _fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:path];
+    _fmdbQueue = [[self databaseQueueClass] databaseQueueWithPath:path];
 
     _currentDBVersion = self.dbVersion;
 }
 
+- (Class)databaseQueueClass{
+    return [KIZDatabaseQueue class];
+}
 
 /** 更改数据库路径 */
 - (void)changeDataBasePath:(NSString *)filePath{
@@ -99,10 +102,10 @@ static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
                     NSLog(@"create dir error: %@", error.debugDescription);
                 }
                 
-                self.fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:filePath];
+                self.fmdbQueue = [[self databaseQueueClass] databaseQueueWithPath:filePath];
                 
             }else{
-                self.fmdbQueue = [FMDatabaseQueue databaseQueueWithPath:filePath];
+                self.fmdbQueue = [[self databaseQueueClass] databaseQueueWithPath:filePath];
                 _currentDBVersion = self.dbVersion;
             }
             
