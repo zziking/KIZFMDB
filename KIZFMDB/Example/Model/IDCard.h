@@ -7,9 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "KIZDBProtocol.h"
+#import "BaseModel.h"
 
-@interface IDCard : NSObject<KIZDBProtocol>
+
+@interface IDCard : BaseModel
 
 @property (assign, nonatomic) NSInteger id;
 @property (strong, nonatomic) NSDate *validDate;

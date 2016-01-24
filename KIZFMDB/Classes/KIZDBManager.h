@@ -26,6 +26,7 @@ typedef void(^KIZDataBaseUpgradeBlock)(FMDatabaseQueue *dbQueue, int fromVersion
 @property (strong, atomic) FMDatabaseQueue *fmdbQueue;
 @property (copy,   nonatomic) KIZDataBaseUpgradeBlock upgradeBlock;
 @property (weak,   nonatomic) id<KIZDBManagerDelegate> delegate;
+@property (assign, nonatomic) BOOL enableDebugSql;
 
 + (instancetype)sharedInstance;
 

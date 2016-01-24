@@ -27,23 +27,9 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
 /** 同步保存到数据库 */
 - (BOOL)kiz_saveWithError:(NSError **)error{
     
-    AssetDBNotNil;
-    
-    NSArray *values = nil;
-    NSString *sql = [self __buildSaveOrReplaceSql:KIZDBOperateInsert arguments:&values];
-    
-    //执行SQL语句，插入数据
-    __block BOOL success = YES;
-    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
-        success = [db executeUpdate:sql withArgumentsInArray:values];
-        if (error) {
-            *error = success ? nil : db.lastError;
-        }
-        
-    }];
-    
-    return success;
+    return  [self __executeInsertOrReplace:KIZDBOperateInsert error:error];
 }
+
 /**
  *  异步保存对象到数据库
  *
@@ -60,25 +46,67 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
 }
 
 /** 同步 SaveOrUpdate */
-- (BOOL)kiz_saveOrUpdateWithError:(NSError **)error{
+- (BOOL)kiz_replaceWithError:(NSError **)error{
+    
+    return [self __executeInsertOrReplace:KIZDBOperateReplace error:error];
+}
+
+/** 异步 SaveOrUpdate */
+- (void)kiz_replace:(KIZDBOperateCompletion)completion{
+    
+    dispatch_async(db_serial_queue, ^{
+        NSError *error = nil;
+        [self kiz_replaceWithError:&error];
+        DBCompletionBlock(error);
+    });
+    
+}
+
+- (BOOL)__executeInsertOrReplace:(KIZDBOperateType)operateType error:(NSError **)error{
     
     AssetDBNotNil;
     
     NSArray *values = nil;
-    NSString *sql = [self __buildSaveOrReplaceSql:KIZDBOperateReplace arguments:&values];
+    NSError *mError = nil;
+    NSString *sql = [self __buildSaveOrReplaceSql:operateType arguments:&values error:&mError];
+    
+    if (mError) {
+        if (error) {
+            *error = mError;
+        }
+        return NO;
+    }
     
     //执行SQL语句，插入数据
     __block BOOL success = YES;
-    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
+    
+    [KIZFMDBQueue inTransaction:^(FMDatabase *db, BOOL *rollback) {
         success = [db executeUpdate:sql withArgumentsInArray:values];
         
         if (success) {
+            
+            self.dbRowId = db.lastInsertRowId;
+            
             //更新关联对象
             NSDictionary<NSString *, KIZDBClassProperty *> *relateProperties = [self.class kiz_getDBRelateProperties];
             [relateProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
                 id relateObj = [self valueForKey:propertyName];
                 if (relateObj) {
-                    success = [relateObj kiz_saveOrUpdateWithError:error];
+                    
+                    NSArray *pks = [[relateObj class] kiz_primaryKeys];
+                    for (NSString *pk in pks) {
+                        id v = [relateObj valueForKey:pk];
+                        if (v == nil || [v integerValue] == 0) {
+                            NSString *forieignKey = [self.class kiz_forieignKeyForProperty:propertyName];
+                            if (forieignKey) {
+                                v = [self valueForKey:forieignKey];
+                                [relateObj setValue:v forKey:pk];
+                            }
+                        }
+                    }
+                    
+                    
+                    success = [relateObj __executeInsertOrReplace:operateType error:error];
                     if (!success) {
                         *stop = YES;
                     }
@@ -89,22 +117,14 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         if (error) {
             *error = success ? nil : db.lastError;
         }
+        
+        *rollback = !success;
     }];
-  
+    
     return success;
-//    return [self kiz_saveOrUpdateInDatabase:nil error:error];
 }
 
-/** 异步 SaveOrUpdate */
-- (void)kiz_saveOrUpdate:(KIZDBOperateCompletion)completion{
-    
-    dispatch_async(db_serial_queue, ^{
-        NSError *error = nil;
-        [self kiz_saveOrUpdateWithError:&error];
-        DBCompletionBlock(error);
-    });
-    
-}
+#pragma mark-
 
 /** 同步 删除当前记录，根据主键来删除，需要确保主键的值不为空 */
 - (BOOL)kiz_removeWithError:(NSError **)error{
@@ -208,7 +228,15 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         for (NSObject *obj in objects) {
             
             NSArray *values = nil;
-            NSString *sql = [obj __buildSaveOrReplaceSql:KIZDBOperateInsert arguments:&values];
+            NSError *mError = nil;
+            NSString *sql = [obj __buildSaveOrReplaceSql:KIZDBOperateInsert arguments:&values error:&mError];
+            if (mError) {
+                if (error) {
+                    *error = mError;
+                }
+                *rollback = YES;
+                return;
+            }
             
             success = [db executeUpdate:sql withArgumentsInArray:values];
             if (!success) {
@@ -303,7 +331,7 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
         
         for (NSObject *obj in objects) {
             
-            BOOL success = [obj kiz_saveOrUpdateWithError:error];
+            BOOL success = [obj kiz_replaceWithError:error];
             
             if (!success) {
                 //有一条数据插入失败则回滚
@@ -412,116 +440,7 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     DBCompletionBlock(error);
 }
 
-/**
- *  同步SELECT
- *  @param where
- *  @param arguments
- *  @return nil if error
- */
-+ (NSArray *)kiz_selectWhere:(NSString *)where arguments:(NSArray *)arguments error:(NSError **)error{
-    
-    AssetDBNotNil;
-    
-    NSString *tableName = [self.class kiz_tableName];
-    
-    if (where.length > 0) {
-        where = [@"WHERE " stringByAppendingString:where];
-    }else{
-        where = @"";
-    }
-    
-    NSMutableString *sql = [[NSMutableString alloc] initWithFormat:@"SELECT * FROM %@ %@", tableName, where];
-    
-    KIZDebug(@"#SQL-->%@", sql);
-    
-    __block NSArray *results = nil;
-    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
-        
-        FMResultSet *rs = [db executeQuery:sql withArgumentsInArray:arguments];
-        results = [self.class parseResultSet:rs];
-        if (error) {
-           *error = rs ? nil : db.lastError;
-        }
-        
-        [rs close];
-        
-    }];
-    
-    return results;
-}
 
-/** 异步SELECT */
-+ (void)kiz_selectWhere:(NSString *)where arguments:(NSArray *)arguments completion:(void(^)(NSArray *results, NSError *error))completion{
-    
-    AssetDBNotNil;
-    
-    if (!completion) {
-        return;
-    }
-    
-    dispatch_async(db_serial_queue, ^{
-        NSError *error = nil;
-        NSArray *results = [self.class kiz_selectWhere:where arguments:arguments error:&error];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(results, error);
-        });
-    });
-    
-}
-
-
-+ (NSArray<NSDictionary *> *)kiz_select:(NSString *)select where:(NSString *)where arguments:(NSArray *)arguments error:(NSError **)error{
-    
-    AssetDBNotNil;
-    
-    NSString *tableName = [self.class kiz_tableName];
-    
-    if (where.length > 0) {
-        where = [@"WHERE " stringByAppendingString:where];
-    }else{
-        where = @"";
-    }
-    
-    NSMutableString *sql = [[NSMutableString alloc] initWithFormat:@"SELECT %@ FROM %@ %@", select, tableName, where];
-    
-    KIZDebug(@"#SQL-->%@", sql);
-    
-    __block NSMutableArray *resultArray = nil;
-    [KIZFMDBQueue inDatabase:^(FMDatabase *db) {
-        
-        FMResultSet *resultSet = [db executeQuery:sql withArgumentsInArray:arguments];
-        if (error && !resultSet) {
-            *error = db.lastError;
-        }else{
-            resultArray = [NSMutableArray array];
-            while (resultSet.next) {
-                NSDictionary *dic = [resultSet resultDictionary];
-                [resultArray addObject:dic];
-            }
-        }
-        
-        [resultSet close];
-    }];
-    
-    return resultArray;
-}
-
-+ (void)kiz_select:(NSString *)select where:(NSString *)where arguments:(NSArray *)arguments completion:(void(^)(NSArray<NSDictionary *>  *resultArray, NSError *error))completion{
-    
-    if (!completion) {
-        return;
-    }
-    
-    dispatch_async(db_serial_queue, ^{
-        NSError *error = nil;
-        NSArray<NSDictionary *>  *resultArray = [self.class kiz_select:select where:where arguments:arguments error:&error];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(resultArray, error);
-        });
-        
-    });
-    
-}
 
 #pragma mark- Private Methods
 /**
@@ -643,8 +562,8 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
                     
                     classProperty.classType = NSClassFromString(propertyType);
                     classProperty.isMutable = ([propertyType rangeOfString:@"Mutable"].location != NSNotFound);
-                    
-                    if ([cls conformsToProtocol:@protocol(KIZDBProtocol)]) {
+
+                    if ([cls __isKIZDBModelClass]) {
                         isKIZRelateObj = YES;
                     }
                     
@@ -706,13 +625,28 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
                              );
 }
 
++ (BOOL)__isKIZDBModelClass{
+    Class class = self.class;
+    BOOL b = NO;
+    while ( class != NSObject.class) {
+        b = class_conformsToProtocol(class, @protocol(KIZDBProtocol));
+        if (b) {
+            break;
+        }else{
+            class = class_getSuperclass(class);
+        }
+    }
+    
+    return b;
+}
+
 /**
  *  构造 INSERT或者 REPLACE(save or update) 语句
  *
  *  @param insertOrReplace [INSERT, REPLACE]之一的字符串
  *  @param completion
  */
-- (NSString *)__buildSaveOrReplaceSql:(KIZDBOperateType)operateType arguments:(NSArray **)args{
+- (NSString *)__buildSaveOrReplaceSql:(KIZDBOperateType)operateType arguments:(NSArray **)args error:(NSError **)error{
     
     AssetDBNotNil;
     
@@ -734,22 +668,50 @@ typedef NS_ENUM(NSUInteger, KIZDBOperateType) {
     NSMutableArray *values = [NSMutableArray array];
     
     //构造INSERT SQL语句
+    __block NSError *mError = nil;
     NSDictionary<NSString *, KIZDBClassProperty *> *classPropertyDic = [class kiz_getDBClassProperties];
     [classPropertyDic enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, KIZDBClassProperty * _Nonnull classProperty, BOOL * _Nonnull stop) {
         
         id v = [self valueForKeyPath:classProperty.name];
-
-        //插入数据时，为空的字段不插入
-        if (operateType == KIZDBOperateReplace || (operateType == KIZDBOperateInsert && v != nil) ) {
+        
+        if (v == nil) {
             
+            if (classProperty.isPrimarykey ) {
+                *stop  = YES;
+                mError = [[NSError alloc] initWithDomain:KIZDBErrorDomain
+                                                    code:-100
+                                                userInfo:@{
+                                                           NSLocalizedDescriptionKey : [NSString stringWithFormat:@"primarykey %@ can not be nil", classProperty.protocolName]
+                                                           }
+                          ];
+            }
+            
+            
+        }else{
+            if (classProperty.isPrimarykey && operateType == KIZDBOperateInsert ) {
+                
+                if (classProperty.propertyType == KIZPropertyTypeInteger && [v integerValue] <= 0) {
+                    //integer primary key default is auto increment
+                    v = nil;
+                }
+            }
+
+        }
+        
+        
+        if (v !=nil ) {
             [sql appendFormat:@" %@,", classProperty.dbColumnName];
             [arguments appendString:@" ?,"];
             
-            v = v ?: [NSNull null];
             [values addObject:v];
         }
         
     }];
+    
+    if (mError && error) {
+        *error = mError;
+        return nil;
+    }
     
     [sql deleteCharactersInRange:NSMakeRange(sql.length - 1, 1)];
     [arguments deleteCharactersInRange:NSMakeRange(arguments.length - 1, 1)];
@@ -922,68 +884,10 @@ static KIZPropertyType propertyTypeFromObjcPropertyT(objc_property_t property)
     return KIZPropertyTypeString;
 }
 
-
-/**
- 将ResutlSet转换成aclass指定的对象
- */
-+ (NSMutableArray *)parseResultSet:(FMResultSet *)rs{
-    
-    if (!rs) {
-        return nil;
-    }
-    
-    Class aclass = self.class;
-    NSMutableArray *results = [[NSMutableArray alloc] init];
-    
-    NSDictionary<NSString *, KIZDBClassProperty *> *classProperties = [aclass kiz_getDBClassProperties];
-    
-    while ([rs next]) {
-        
-        id instance = [[aclass alloc] init];
-        
-        [classProperties enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull propertyName, KIZDBClassProperty * _Nonnull obj, BOOL * _Nonnull stop) {
-            
-            NSString *columnName = obj.dbColumnName;
-            
-            int columnIndex = [rs columnIndexForName:columnName];
-            id  columnValue;
-            
-            switch (obj.propertyType) {
-                case KIZPropertyTypeString: {
-                    columnValue = [rs stringForColumnIndex:columnIndex];
-                    break;
-                }
-                case KIZPropertyTypeInteger: {
-                    columnValue = [NSNumber numberWithLongLong:[rs longLongIntForColumnIndex:columnIndex]];
-                    break;
-                }
-                case KIZPropertyTypeFloat: {
-                    columnValue = [NSNumber numberWithDouble:[rs doubleForColumnIndex:columnIndex]];
-                    break;
-                }
-                case KIZPropertyTypeBlob: {
-                    columnValue = [rs dataForColumnIndex:columnIndex];
-                    break;
-                }
-                case KIZPropertyTypeDate: {
-                    columnValue = [rs dateForColumnIndex:columnIndex];
-                    break;
-                }
-                
-            }
-            
-            
-            
-            [instance setValue:columnValue forKeyPath:propertyName];
-            
-        }];
-        
-        [results addObject:instance];
-        
-    }
-    
-    [rs close];
-    return results;
+- (NSInteger)dbRowId{
+    return [objc_getAssociatedObject(self, @selector(dbRowId)) integerValue];
 }
-
+- (void)setDbRowId:(NSInteger)dbRowId{
+    objc_setAssociatedObject(self, @selector(dbRowId), @(dbRowId), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 @end

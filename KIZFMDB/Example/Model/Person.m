@@ -25,7 +25,7 @@
 
 + (NSString *)kiz_forieignKeyForProperty:(NSString *)property{
     if ([property isEqualToString:@"idCard"]) {
-        return @"id";
+        return @"userId";
     }
     return nil;
 }

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4416EB261C54CBDD00D99AD3 /* BaseModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 4416EB251C54CBDD00D99AD3 /* BaseModel.m */; };
 		4462B0A61C45E45500D8B1DB /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4462B0A51C45E45500D8B1DB /* main.m */; };
 		4462B0A91C45E45500D8B1DB /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4462B0A81C45E45500D8B1DB /* AppDelegate.m */; };
 		4462B0AC1C45E45500D8B1DB /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4462B0AB1C45E45500D8B1DB /* ViewController.m */; };
@@ -50,6 +51,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4416EB241C54CBDD00D99AD3 /* BaseModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BaseModel.h; sourceTree = "<group>"; };
+		4416EB251C54CBDD00D99AD3 /* BaseModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BaseModel.m; sourceTree = "<group>"; };
 		4441D6241C472E6E007D5991 /* KIZFMDBPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KIZFMDBPrivate.h; sourceTree = "<group>"; };
 		4462B0A11C45E45500D8B1DB /* KIZFMDB.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KIZFMDB.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4462B0A51C45E45500D8B1DB /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -250,6 +253,8 @@
 				4462B0FC1C4655B900D8B1DB /* Person.m */,
 				446E2E201C4945130037403B /* IDCard.h */,
 				446E2E211C4945130037403B /* IDCard.m */,
+				4416EB241C54CBDD00D99AD3 /* BaseModel.h */,
+				4416EB251C54CBDD00D99AD3 /* BaseModel.m */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -384,6 +389,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4416EB261C54CBDD00D99AD3 /* BaseModel.m in Sources */,
 				447782FA1C4673BE00DA7E35 /* NSObject+KIZFMDB_Table.m in Sources */,
 				4462B0FD1C4655B900D8B1DB /* Person.m in Sources */,
 				4462B0AC1C45E45500D8B1DB /* ViewController.m in Sources */,

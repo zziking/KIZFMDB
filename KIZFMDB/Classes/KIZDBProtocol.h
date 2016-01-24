@@ -72,13 +72,23 @@ typedef void(^KIZDBOperateCompletion)(NSError *error);
 /** 异步 创建数据表，如果数据表不存在，则创建数据表*/
 + (void)kiz_createTableWithCompletion:(KIZDBOperateCompletion)completion;
 
+@end
+
+#pragma mark- 
+
+@protocol KIZDBSelectProtocol <NSObject>
+
+/** 同步SELECT*/
++ (NSArray *)kiz_selectWhere:(NSString *)where arguments:(NSArray *)arguments error:(NSError **)error;
++ (void)kiz_selectWhere:(NSString *)where arguments:(NSArray *)arguments completion:(void(^)(NSArray *results, NSError *error))completion;
++ (void)kiz_select:(NSString *)select where:(NSString *)where arguments:(NSArray *)arguments completion:(void(^)(NSArray<NSDictionary *>  *resultArray, NSError *error))completion;
 
 @end
 
 
-#pragma mark- 
+#pragma mark-
 
-@protocol KIZDBProtocol <KIZDBTableProtocol>
+@protocol KIZDBProtocol <KIZDBTableProtocol, KIZDBSelectProtocol>
 
 @optional
 
@@ -89,8 +99,8 @@ typedef void(^KIZDBOperateCompletion)(NSError *error);
 - (BOOL)kiz_saveWithError:(NSError **)error;
 - (void)kiz_save:(KIZDBOperateCompletion)completion;
 /** 同步 SaveOrUpdate */
-- (BOOL)kiz_saveOrUpdateWithError:(NSError **)error;
-- (void)kiz_saveOrUpdate:(KIZDBOperateCompletion)completion;
+- (BOOL)kiz_replaceWithError:(NSError **)error;
+- (void)kiz_replace:(KIZDBOperateCompletion)completion;
 /** 同步 更新 */
 - (BOOL)kiz_updateWithError:(NSError **)error;
 /** 更新对象的指定属性到数据库 */
@@ -121,10 +131,5 @@ typedef void(^KIZDBOperateCompletion)(NSError *error);
  *  @param arguments 参数，[value1, value2]
  */
 + (void)kiz_removeWhere:(NSString *)where arguments:(NSArray *)arguments completion:(KIZDBOperateCompletion)completion;
-
-/** 同步SELECT*/
-+ (NSArray *)kiz_selectWhere:(NSString *)where arguments:(NSArray *)arguments error:(NSError **)error;
-+ (void)kiz_selectWhere:(NSString *)where arguments:(NSArray *)arguments completion:(void(^)(NSArray *results, NSError *error))completion;
-+ (void)kiz_select:(NSString *)select where:(NSString *)where arguments:(NSArray *)arguments completion:(void(^)(NSArray<NSDictionary *>  *resultArray, NSError *error))completion;
 
 @end

@@ -11,5 +11,7 @@
 
 @interface NSObject (KIZFMDB)<KIZDBProtocol>
 
+//the rowId when store in sqlite, if primary key is integer, then dbRowId is equal primary key's value
+@property (assign, nonatomic) NSInteger dbRowId;
 
 @end

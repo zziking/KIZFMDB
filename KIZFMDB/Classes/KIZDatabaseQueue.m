@@ -7,8 +7,15 @@
 //
 
 #import "KIZDatabaseQueue.h"
+#import "FMDatabase.h"
 
 //static NSString *const KIZDatabaseQueue = @"KIZDatabaseQueue";
+
+@interface FMDatabaseQueue (Private)
+
+- (void)beginTransaction:(BOOL)useDeferred withBlock:(void (^)(FMDatabase *db, BOOL *rollback))block;
+
+@end
 
 @interface KIZDatabaseQueue ()
 
@@ -57,6 +64,32 @@
     }];
     
     [self.rLock unlock];
+}
+
+- (void)beginTransaction:(BOOL)useDeferred withBlock:(void (^)(FMDatabase *db, BOOL *rollback))block {
+    if (self.executingDB) {
+        
+        BOOL shouldRollback = NO;
+
+        if (useDeferred) {
+            [self.executingDB beginDeferredTransaction];
+        }
+        else {
+            [self.executingDB beginTransaction];
+        }
+        
+        block(self.executingDB, &shouldRollback);
+        
+        if (shouldRollback) {
+            [self.executingDB rollback];
+        }
+        else {
+            [self.executingDB commit];
+        }
+        
+    }else{
+        [super beginTransaction:useDeferred withBlock:block];
+    }
 }
 
 @end

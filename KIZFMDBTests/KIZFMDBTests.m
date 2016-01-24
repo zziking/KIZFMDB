@@ -78,6 +78,10 @@
     user.birthDate = [NSDate date];
     user.longValue = LONG_MAX;
     
+    IDCard *card = [IDCard new];
+    card.id = user.userId;
+    user.idCard = (id)card;
+    
     [user kiz_saveWithError:&error];
     
     XCTAssert(error == nil);

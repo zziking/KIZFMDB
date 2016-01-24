@@ -36,7 +36,8 @@ static NSString *const KIZFMDBQueue = @"com.kingizz.KIZFMDBQueue";
 - (instancetype)init{
     self = [super init];
     if (self) {
-        _queue = dispatch_queue_create([KIZFMDBQueue UTF8String], DISPATCH_QUEUE_SERIAL);
+        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, -1);
+        _queue = dispatch_queue_create([KIZFMDBQueue UTF8String], attr);
         [self __initFmdbQueue];
     }
     return self;
