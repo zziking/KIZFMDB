@@ -61,6 +61,31 @@
     
 }
 
+- (void)testRecursiveTransaction{
+    
+    FMDatabaseQueue *databaseQueue = [KIZDBManager sharedInstance].fmdbQueue;
+    [databaseQueue inTransaction:^(FMDatabase *db, BOOL *rollback) {
+        NSLog(@"####1");
+        [databaseQueue inTransaction:^(FMDatabase *db, BOOL *rollback) {
+            NSLog(@"####1-1");
+            
+            [databaseQueue inTransaction:^(FMDatabase *db, BOOL *rollback) {
+                NSLog(@"####1-1-1");
+                *rollback = YES;
+            }];
+            
+            NSLog(@"####1-1end");
+        }];
+        
+        [databaseQueue inTransaction:^(FMDatabase *db, BOOL *rollback) {
+            NSLog(@"####1-2");
+        }];
+        
+        NSLog(@"#####end");
+    }];
+    
+}
+
 - (void)testCreateTable{
     
     NSError *error = nil;

@@ -20,6 +20,7 @@
 @interface KIZDatabaseQueue ()
 
 @property (weak,    nonatomic) FMDatabase *executingDB;
+@property (assign,  nonatomic) BOOL *shouldRollback;
 @property (strong,  nonatomic) NSRecursiveLock *rLock;
 
 @end
@@ -53,43 +54,29 @@
     
 }
 
-- (void)inTransaction:(void (^)(FMDatabase *db, BOOL *rollback))block{
+
+- (void)beginTransaction:(BOOL)useDeferred withBlock:(void (^)(FMDatabase *db, BOOL *rollback))block {
     
     [self.rLock lock];
     
-    [super inTransaction:^(FMDatabase *db, BOOL *rollback){
-        self.executingDB = db;
-        block(db, rollback);
-        self.executingDB = nil;
-    }];
-    
-    [self.rLock unlock];
-}
-
-- (void)beginTransaction:(BOOL)useDeferred withBlock:(void (^)(FMDatabase *db, BOOL *rollback))block {
     if (self.executingDB) {
         
-        BOOL shouldRollback = NO;
-
-        if (useDeferred) {
-            [self.executingDB beginDeferredTransaction];
-        }
-        else {
-            [self.executingDB beginTransaction];
-        }
-        
-        block(self.executingDB, &shouldRollback);
-        
-        if (shouldRollback) {
-            [self.executingDB rollback];
-        }
-        else {
-            [self.executingDB commit];
+        if (self.shouldRollback && *self.shouldRollback == NO) {
+            
+            block(self.executingDB, self.shouldRollback);
         }
         
     }else{
-        [super beginTransaction:useDeferred withBlock:block];
+        [super beginTransaction:useDeferred withBlock:^(FMDatabase *db, BOOL *rollback){
+            self.executingDB    = db;
+            self.shouldRollback = rollback;
+            block(db, rollback);
+            self.executingDB = nil;
+            self.shouldRollback = nil;
+        }];
     }
+    
+    [self.rLock unlock];
 }
 
 @end
